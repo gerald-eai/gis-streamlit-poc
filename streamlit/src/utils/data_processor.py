@@ -46,7 +46,7 @@ def string_to_dict(input_str: str) -> list[str]:
     input_list = ast.literal_eval(input_str)
     # convert the list of dictionaries to a list of dictionaries
     input_list = [ast.literal_eval(el) for el in input_list]
-    print(input_list)
+    # print(input_list)
 
     return input_list
 
@@ -82,7 +82,7 @@ def df_to_gdf(plain_df: DataFrame, layer_columns: list[str], geo_type: str) -> G
     map_contents = plain_df[layer_columns].copy()
     map_contents['geometry'] = map_contents['geometry'].apply(
         lambda x: string_to_geometry(x, geo_type=geo_type))
-    print(map_contents.head())
+    # print(map_contents.head())
     return gpd.GeoDataFrame(map_contents, geometry='geometry')
 
 
@@ -97,87 +97,3 @@ def load_gdf_from_csv(path: str) -> Any:
     """
     gdf = gpd.read_file(path)
     return gdf
-
-
-def request_base_layer(db_connection: DatabricksAPI) -> GeoDataFrame:
-    """_summary_
-    Request the base layer from databricks and return it as a geodataframe
-    Args:
-        db_connection (DatabricksAPI): _description_
-
-    Returns:
-        GeoDataFrame: _description_
-    """
-    nb_name = 'GISMAIN_Notebook_002'
-    nb_path = os.environ.get('AZ_DB_NOTEBOOK_PATH') + nb_name
-
-    # run the job and return the run id
-    run_id = dbutils.get_one_time_run(db_connection=db_connection, cluster_id=os.environ.get('AZ_DB_CLUSTER_ID'),
-                                      run_name="Get Lower Hall B Layer", timeout_seconds=3600,
-                                      workspace_path=nb_path, notebook_params={
-                                          "NE_Area": "LOWERHALLB"},
-                                      git=False)['run_id']
-
-    active_jobs = dbutils.list_active_runs(
-        db_connection=db_connection, active_only=True)
-    configutils.save_json_data(data=active_jobs, file_name='active_jobs.json')
-
-    # allow the job and the run to complete before calling the response
-    t.sleep(10)
-
-    run_response = dbutils.get_job_output(
-        db_connection=db_connection, run_id=run_id)
-    configutils.save_json_data(data=run_response, file_name='active_jobs.json')
-    response_output = run_response["notebook_output"]["result"]
-
-    # convert the string to json to a geodataframe
-    output_dict = string_to_dict(response_output)
-    output_df = pd.DataFrame(output_dict)
-    output_gdf = df_to_gdf(plain_df=output_df, layer_columns=[
-                           'GISID', 'FMZCODE', 'DMACODE', 'PMACODE', 'MAINNAME', 'WATERTYPE', 'geometry', 'layer'])
-
-    return output_gdf
-
-
-def load_base_layer_local( file_name: str) -> GeoDataFrame:
-    # read from the file
-    json_data = configutils.read_from_json(file_name)
-
-    output_str = json_data["notebook_output"]["result"]
-    output_dict = string_to_dict(output_str)
-    output_df = pd.DataFrame(output_dict)
-    output_gdf = df_to_gdf(plain_df=output_df, layer_columns=[
-                           'GISID', 'FMZCODE', 'DMACODE', 'PMACODE', 'MAINNAME', 'WATERTYPE', 'geometry', 'layer'], geo_type='Point')
-    return output_gdf
-
-
-def test_base_layer():
-    db_connection = dbutils.init_db_connection(
-        os.environ.get('AZ_DB_HOST'), os.environ.get('AZ_DB_TOKEN'))
-    file_name = "run_output25052023_17H01M16S.json"
-    # get_gpd = load_base_layer_local(db_connection=db_connection, file_name=file_name)
-    # print(f"Head of the GeoDataFrame: {get_gpd.head()}")
-
-    get_gpd = request_base_layer(db_connection=db_connection)
-    print(f"Head of the GeoDataFrame: {get_gpd.head()}")
-
-
-def test_load_ne_data():
-    csv_file = "../data/ne_london_data.csv"
-    plain_df = pd.read_csv(csv_file)        # extract our info/data
-    ne_london_data = df_to_gdf(plain_df)
-    print(ne_london_data.columns)
-    # export the data as a geoJSON
-    ne_london_data.to_file("../data/ne_london_data.geojson", driver='GeoJSON')
-    print(ne_london_data.head())
-    # NE London Data is now accessible from the map pages
-    # calculate the bounding box of the data
-
-
-def main():
-    test_base_layer()
-
-
-if __name__ == "__main__":
-    print("Loading and Processing the Data Requested from Databricks")
-    main()

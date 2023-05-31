@@ -4,3 +4,5 @@ streamlit/output
 *.env
 /streamlit/data/ne_london_data.csv
 /streamlit/data/lower_hall_b.csv
+.DS-Store
+

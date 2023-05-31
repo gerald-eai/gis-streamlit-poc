@@ -23,12 +23,15 @@ GitPython==3.1.31
 idna==3.4
 importlib-metadata==6.6.0
 Jinja2==3.1.2
+joblib==1.2.0
 jsonschema==4.17.3
 kiwisolver==1.4.4
+mapclassify==2.5.0
 markdown-it-py==2.2.0
 MarkupSafe==2.1.2
 matplotlib==3.7.1
 mdurl==0.1.2
+networkx==3.1
 numpy==1.24.3
 oauthlib==3.2.2
 packaging==23.1
@@ -48,6 +51,8 @@ python-dotenv==1.0.0
 pytz==2023.3
 requests==2.30.0
 rich==13.3.5
+scikit-learn==1.2.2
+scipy==1.10.1
 shapely==2.0.1
 six==1.16.0
 smmap==5.0.0
@@ -55,6 +60,7 @@ streamlit==1.22.0
 streamlit-folium==0.11.1
 tabulate==0.9.0
 tenacity==8.2.2
+threadpoolctl==3.1.0
 toml==0.10.2
 toolz==0.12.0
 tornado==6.3.2

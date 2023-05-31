@@ -1,85 +1,90 @@
-import utils.databricks as dbutils
-from utils.init_app_session import app_setup_on_load
-import utils.config as configutils
-import utils.data_processor as proc
-import streamlit as st
-import streamlit_folium as st_folium
-import folium
-from folium import Map
-from folium.features import GeoJsonTooltip
-import pandas as pd
-import numpy as np
+import asyncio
 import os
 import sys
-import geopandas as gpd
-from geopandas import GeoDataFrame
-import matplotlib.pyplot as plt
-import mapclassify
-import asyncio
+import time as t
 from typing import Any
-from shapely.ops import unary_union
+
+import folium
+import geopandas as gpd
+import mapclassify
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import streamlit_folium as st_folium
+import utils.config as configutils
+import utils.data_processor as proc
+import utils.databricks as dbutils
+from folium import Map
+from folium.features import GeoJsonTooltip
+from geopandas import GeoDataFrame
 from shapely.geometry import LinearRing, Polygon
-import time as t 
+from shapely.ops import unary_union
+from utils.init_app_session import app_setup_on_load, init_db_connection, init_state
+
+import streamlit as st
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
 
-@st.cache_data() 
+
+@st.cache_data()
 def update_center_location(center: list[float] | None = None):
-    if center != None and center != st.session_state.center_loc: 
+    if center != None and center != st.session_state.center_loc:
         st.session_state.center_loc = center
 
-# Convert hex value to RGB
+
 def hex_to_rgb(hex_value):
     hex_value = hex_value.strip('#')
     return tuple(int(hex_value[i:i+2], 16) for i in (0, 2, 4))
 
-def map_fmz_colors(feature, meter: bool, fmz: str | None = None): 
-    
-    if meter: 
-        
-        color_map = {   
-                        "ZSEWRD": "cadetblue",
-                        "ZDARNH": "purple", 
-                        "ZUPSHB": "darkgreen", 
-                        "ZHAILY": "lightgreen", 
-                        "ZEXGGT": "pink", 
-                        "ZHAILB": "lightred" , 
-                        "ZDARNP":"lightblue", 
-                        "ZHODDN":"darkred", 
-                        "ZDARNB": "darkpurple"
-                        }
+
+def map_fmz_colors(feature, meter: bool, fmz: str | None = None):
+
+    if meter:
+
+        color_map = {
+            "ZSEWRD": "cadetblue",
+            "ZDARNH": "purple",
+            "ZUPSHB": "darkgreen",
+            "ZHAILY": "lightgreen",
+            "ZEXGGT": "pink",
+            "ZHAILB": "lightred",
+            "ZDARNP": "lightblue",
+            "ZHODDN": "darkred",
+            "ZDARNB": "darkpurple"
+        }
         # fmz_value = feature["properties"]["FMZ1CODE"]
         fmz_value = fmz
         return color_map[str(fmz_value)]
-    else: 
+    else:
         color_map = {"ZSEWRD": "#0FFF95",
-                    "ZDARNH": "#44A1A0", 
-                    "ZUPSHB": "#78CDD7", 
-                    "ZHAILY": "#8AF3FF", 
-                    "ZEXGGT": "#247B7B", 
-                    "ZHAILB": "#B1E5F2" , 
-                    "ZDARNP":"#C2F8CB", 
-                    "ZHODDN":"#B3E9C7", 
-                    "ZDARNB": "#F0FFF1"}
+                     "ZDARNH": "#44A1A0",
+                     "ZUPSHB": "#78CDD7",
+                     "ZHAILY": "#8AF3FF",
+                     "ZEXGGT": "#247B7B",
+                     "ZHAILB": "#B1E5F2",
+                     "ZDARNP": "#C2F8CB",
+                     "ZHODDN": "#B3E9C7",
+                     "ZDARNB": "#F0FFF1"}
         fmz_value = feature["properties"]["FMZCODE"]
         return color_map[str(fmz_value)]
-    
-def get_fmz_regions(base: GeoDataFrame, fmz_names: list[str]): 
+
+
+def get_fmz_regions(base: GeoDataFrame, fmz_names: list[str]):
     # based on the list of FMZs, group the dataset into FMZs
-    # return all the FMZs as their own dataframe 
+    # return all the FMZs as their own dataframe
     fmz_regions = {}
     unique_fmz_names = base['FMZCODE'].unique()
-    print(unique_fmz_names)
-    for fmz in unique_fmz_names: 
+    # print(unique_fmz_names)
+    for fmz in unique_fmz_names:
         fmz_region = base[base['FMZCODE'] == fmz].copy()
         # fmz_region['polygon']
         fmz_regions[fmz] = fmz_region
-    
+
     # return the fmz regions
-    return fmz_regions 
-    
-    
+    return fmz_regions
+
+
 def calculate_centroid(gpd: GeoDataFrame):
     """
     Calculates the centroid for a dataframe 
@@ -105,14 +110,14 @@ def calculate_centroid(gpd: GeoDataFrame):
         count += 1
 
     avg_centroid = [round(y_sum/count, 4), round(x_sum/count, 4)]
-    print(f"Avg Centroid: {avg_centroid}")
+    # print(f"Avg Centroid: {avg_centroid}")
 
     return avg_centroid
 
 
 def gen_base_layer(center: list[float] | None = None):
     if center:
-        print("location added")
+        # print("location added")
         m = folium.Map(location=center, tiles="cartodb positron")
     else:
         m = folium.Map()
@@ -124,7 +129,7 @@ def add_layer_to_base(base: Map, gdf: GeoDataFrame, fig: folium.Figure):
     gdf.crs = "EPSG:27700"
     gdf = gdf.to_crs(epsg=4326)
 
-    print(gdf.crs)
+    # print(gdf.crs)
     gdf.explore(m=base)
     # districts_gdf.explore(m=basemap, color='black', style_kwds={
     #                   'fillOpacity': 0.3, 'weight': 0.5},)
@@ -135,20 +140,21 @@ def add_layer_to_base(base: Map, gdf: GeoDataFrame, fig: folium.Figure):
 
 @st.cache_data()
 def load_lower_hall_local():
-    print("Manual Function for loading the Lower Hall B data")
+    # print("Manual Function for loading the Lower Hall B data")
     csv_path = "../data/lower_hall_b_full.csv"
     plain_df = pd.read_csv(csv_path)
-    fmz_regions = get_fmz_regions(plain_df, ["ZSEWRD","ZDARNH", "ZUPSHB", "ZHAILY", "ZEXGGT", "ZHAILB", "ZDARNP", "ZHODDN", "ZDARNB"])
+    fmz_regions = get_fmz_regions(plain_df, [
+                                  "ZSEWRD", "ZDARNH", "ZUPSHB", "ZHAILY", "ZEXGGT", "ZHAILB", "ZDARNP", "ZHODDN", "ZDARNB"])
     lower_hall_b_gdf = proc.df_to_gdf(plain_df, layer_columns=[
                                       'GISID', 'FMZCODE', 'DMACODE', 'PMACODE', 'MAINNAME', 'geometry', 'layer'], geo_type="MultiLineString")
     return lower_hall_b_gdf
 
 
 # @st.cache_data() # uncomment if the user wishes to only load the network layer data once, it is
-def load_network_layer_local(fmz_list): 
+def load_network_layer_local(fmz_list):
     """_summary_
     Load the Network Meter DF and only return those FMZs specified in the user input. 
-    
+
     Args:
         fmz_list (_type_): _description_
 
@@ -158,18 +164,20 @@ def load_network_layer_local(fmz_list):
     csv_path = "../data/ntwk_meter_full.csv"
     plain_df = pd.read_csv(csv_path)
     filtered = plain_df[plain_df['FMZ1CODE'].isin(fmz_list)]
-    ntwkm_gdf = proc.df_to_gdf(filtered, layer_columns=['FMZ1CODE', 'FMZ2CODE', 'DMA1CODE', 'DMA2CODE', 'METRICCALCULATED', 
-            'GISID', 'TWGUID', 'LIFECYCLESTATUS', 'NETWORKCODE1', 'NETWORKCODE2','METERTYPE', 'SHAPEX', 'SHAPEY', 'geometry'], geo_type="Point")
-    
+    ntwkm_gdf = proc.df_to_gdf(filtered, layer_columns=['FMZ1CODE', 'FMZ2CODE', 'DMA1CODE', 'DMA2CODE', 'METRICCALCULATED',
+                                                        'GISID', 'TWGUID', 'LIFECYCLESTATUS', 'NETWORKCODE1', 'NETWORKCODE2', 'METERTYPE', 'SHAPEX', 'SHAPEY', 'geometry'], geo_type="Point")
+
     return ntwkm_gdf
 
+
 def load_data():
-    print("Load the geospatial data and add layer to the map")
+    # print("Load the geospatial data and add layer to the map")
     csv_file = "../data/ne_london_data.csv"
     plain_df = pd.read_csv(csv_file)        # extract our info/data
     ne_london_data = proc.df_to_gdf(plain_df)
 
     return ne_london_data
+
 
 def render_base_layer(base_map: Map, lower_hall_gdf: GeoDataFrame) -> Map:
     """
@@ -192,13 +200,13 @@ def render_base_layer(base_map: Map, lower_hall_gdf: GeoDataFrame) -> Map:
         "weight": 3,
         "fillOpacity": 0.9
     }, name="Lower Hall B Mains Layer", tooltip=GeoJsonTooltip(fields=['MAINNAME', "GISID", "FMZCODE", 'DMACODE'], aliases=['Main Name', 'GISID', 'FMZ Code', 'DMA Code'], labels=True, sticky=False)).add_to(lower_hall_fg)
-    
-    # generate an FMZ layer and add it to the base map 
+
+    # generate an FMZ layer and add it to the base map
     base_map.add_child(lower_hall_fg)
     return base_map
 
 
-def render_fmz_layer(base_map: Map, lower_hall_gdf: GeoDataFrame, fmz_list: list[str] | None = None) -> Map: 
+def render_fmz_layer(base_map: Map, lower_hall_gdf: GeoDataFrame, fmz_list: list[str] | None = None) -> Map:
     """_summary_
     This function is used to render the fmz tiles layer
     Args:
@@ -208,36 +216,37 @@ def render_fmz_layer(base_map: Map, lower_hall_gdf: GeoDataFrame, fmz_list: list
     Returns:
         Map: _description_
     """
-    fmz_list = ["ZSEWRD","ZDARNH", "ZUPSHB", "ZHAILY", "ZEXGGT", "ZHAILB", "ZDARNP", "ZHODDN", "ZDARNB"]
-    # initialize the feature group for the FMZ layers 
+    fmz_list = ["ZSEWRD", "ZDARNH", "ZUPSHB", "ZHAILY",
+                "ZEXGGT", "ZHAILB", "ZDARNP", "ZHODDN", "ZDARNB"]
+    # initialize the feature group for the FMZ layers
     fmz_fg = folium.FeatureGroup(name="FMZ Layer")
-    
-    for fmz in fmz_list: 
+
+    for fmz in fmz_list:
         fmz_df = lower_hall_gdf[lower_hall_gdf['FMZCODE'] == fmz]
-        # extract multiline string geometries 
+        # extract multiline string geometries
         fmz_geometries = fmz_df['geometry'].values
         # combine the MultiLineString into a single LineString
         combined_line = unary_union(fmz_geometries)
         polygon = Polygon(combined_line.convex_hull)
-        # create geodataframe for ploygon 
+        # create geodataframe for ploygon
         polygon_gdf = gpd.GeoDataFrame(geometry=[polygon])
         polygon_gdf.crs = "EPSG:4326"
         polygon_gdf = polygon_gdf.to_crs(epsg=4326)
         polygon_gdf['FMZCODE'] = fmz
-        
+
         folium.GeoJson(polygon_gdf, style_function=lambda x: {
             "fillColor": map_fmz_colors(x, False),
             "color": '#01295F',
             "weight": 2,
             "fillOpacity": 0.7
-        }, name=fmz, 
-        tooltip=GeoJsonTooltip(fields=["FMZCODE"], aliases=["FMZ Code"], labels=True, sticky=False)).add_to(fmz_fg)
-    
+        }, name=fmz,
+            tooltip=GeoJsonTooltip(fields=["FMZCODE"], aliases=["FMZ Code"], labels=True, sticky=False)).add_to(fmz_fg)
+
     base_map.add_child(fmz_fg)
     return base_map
 
 
-def render_ntwk_meter_layer(base_map: Map, ntwkm_gdf: GeoDataFrame, fmz_list: list[str] | None = None) -> folium.FeatureGroup: 
+def render_ntwk_meter_layer(base_map: Map, ntwkm_gdf: GeoDataFrame, fmz_list: list[str] | None = None) -> folium.FeatureGroup:
     """_summary_
 
     Args:
@@ -249,26 +258,29 @@ def render_ntwk_meter_layer(base_map: Map, ntwkm_gdf: GeoDataFrame, fmz_list: li
         folium.FeatureGroup: _description_
     """
     fg_layers = {}
-    
-    for fmz in fmz_list: 
-        print(f"Current FMZ: {fmz}")
-        fg_layers[fmz] = folium.FeatureGroup(name=f"{fmz} Network Meter Points")
+
+    for fmz in fmz_list:
+        # print(f"Current FMZ: {fmz}")
+        fg_layers[fmz] = folium.FeatureGroup(
+            name=f"{fmz} Network Meter Points")
         fmz_gdf = ntwkm_gdf[ntwkm_gdf['FMZ1CODE'] == fmz]
-        hex_color= map_fmz_colors(feature=fmz_gdf, meter=True, fmz=fmz)
-        print(f"Hex Color: {hex_color}")
-        for index, row in fmz_gdf.iterrows(): 
+        hex_color = map_fmz_colors(feature=fmz_gdf, meter=True, fmz=fmz)
+        # print(f"Hex Color: {hex_color}")
+        for index, row in fmz_gdf.iterrows():
             lat, lon = row['geometry'].y, row['geometry'].x
             meter_marker = folium.Marker(
-                    location=[lat, lon],
-                    icon=folium.Icon(color=hex_color, icon='info-sign'),
-                    popup=f"<h4>Network ID: {row['NETWORKCODE1']} </h4><p>LifeCycle Status: {row['LIFECYCLESTATUS']}</p><p>Metric: {row['METRICCALCULATED']}</p>"
-                    )
+                location=[lat, lon],
+                icon=folium.Icon(color=hex_color, icon='info-sign'),
+                popup=f"<h4>Network ID: {row['NETWORKCODE1']} </h4><p>LifeCycle Status: {row['LIFECYCLESTATUS']}</p><p>Metric: {row['METRICCALCULATED']}</p>"
+            )
             fg_layers[fmz].add_child(meter_marker)
     return fg_layers
 
 # @st.cache_data()
+
+
 def request_gis_layer(work_path: str, cluster: int, job_params: Any, f_name: str | None = None) -> pd.DataFrame:
-    # print("Use this function to asynchronously request the data from Databricks")
+    # # print("Use this function to asynchronously request the data from Databricks")
     # request the data from the databricks api then write the response to the application
     run_id = dbutils.get_one_time_run(db_connection=st.session_state['databricks_connection'],
                                       cluster_id=cluster,
@@ -276,7 +288,7 @@ def request_gis_layer(work_path: str, cluster: int, job_params: Any, f_name: str
                                       workspace_path=work_path, notebook_params=job_params,
                                       git=False)['run_id']
     # while the response status is still false then send another request to the run id
-    print(f"Run ID: {run_id}")
+    # print(f"Run ID: {run_id}")
     status = ""
     response = None
     # max_retries = 5
@@ -296,26 +308,31 @@ def request_gis_layer(work_path: str, cluster: int, job_params: Any, f_name: str
         t.sleep(8)
 
     output_str = response["notebook_output"]["result"]
-    print(f"Output: \n{output_str}")
+    # print(f"Output: \n{output_str}")
     # convert the output string to a dictionary
     output_dict = proc.string_to_dict(output_str)
     output_df = pd.DataFrame(output_dict)
-    
+
     return output_df
 
+
 @st.cache_data()
-def request_ntwk_meter_data(selected_fmz: list[str] | None = None): 
+def request_ntwk_meter_data(selected_fmz: list[str] | None = None):
     nb_name = 'GISNTWM_Notebook_001'
     nb_path = os.environ.get('AZ_DB_NOTEBOOK_PATH') + nb_name
     param_str = ','.join(selected_fmz)
-    # print(f"Param String: {param_str}")
-    ntwk_meter_df = request_gis_layer(work_path=nb_path, cluster=os.environ.get('AZ_DB_CLUSTER_ID'), job_params={"FMZCode": param_str}, f_name="ntwkm_run_output.json")
+    # # print(f"Param String: {param_str}")
+    ntwk_meter_df = request_gis_layer(work_path=nb_path, cluster=os.environ.get(
+        'AZ_DB_CLUSTER_ID'), job_params={"FMZCode": param_str}, f_name="ntwkm_run_output.json")
     st.session_state['ntwk_meter_df'] = ntwk_meter_df
     return ntwk_meter_df
 
+
 @st.cache_data()
-def get_ntwk_session(fmz_list): 
-    st.session_state['ntwk_meter_df'] = request_ntwk_meter_data(selected_fmz=fmz_list)
+def get_ntwk_session(fmz_list):
+    st.session_state['ntwk_meter_df'] = request_ntwk_meter_data(
+        selected_fmz=fmz_list)
+
 
 def main():
     st.markdown(
@@ -330,7 +347,8 @@ def main():
         """,
         unsafe_allow_html=True,
     )
-    st.text('This loads a local dataset of Lower Hall B Mains Layer and Network Meter Layer')
+    st.text(
+        'This loads a local dataset of Lower Hall B Mains Layer and Network Meter Layer')
     st.divider()
     st.markdown(
         """
@@ -344,37 +362,39 @@ def main():
         unsafe_allow_html=True,
     )
     # Load the dataframes
-    # gen the data 
+    # gen the data
     lower_hall_gdf = load_lower_hall_local()
     # normalise the crs for our map
     lower_hall_gdf.crs = "EPSG:27700"
     lower_hall_gdf = lower_hall_gdf.to_crs(epsg=4326)
-    # # initialise the base map 
+    # # initialise the base map
     base_map = gen_base_layer()
     # st.write(f"{type(st.session_state['ntwk_meter_df'])}")
     # add the fmz regions layer
-    fmz_list = ["ZSEWRD","ZDARNH", "ZUPSHB", "ZHAILY", "ZEXGGT", "ZHAILB", "ZDARNP", "ZHODDN", "ZDARNB"]
-    # Add the awkward looking fmz regions to the 
+    fmz_list = ["ZSEWRD", "ZDARNH", "ZUPSHB", "ZHAILY",
+                "ZEXGGT", "ZHAILB", "ZDARNP", "ZHODDN", "ZDARNB"]
+    # Add the awkward looking fmz regions to the basemap
     # base_map = render_fmz_layer(base_map=base_map, lower_hall_gdf=lower_hall_gdf, fmz_list=fmz_list)
     # add the mains layer
     center_loc = calculate_centroid(lower_hall_gdf)
-    print(f"Center location: {center_loc}")
+    # # print(f"Center location: {center_loc}")
     st.session_state['center_loc'] = center_loc
     # add the network meter layer
-    base_map = render_base_layer(base_map=base_map, lower_hall_gdf=lower_hall_gdf)
+    base_map = render_base_layer(
+        base_map=base_map, lower_hall_gdf=lower_hall_gdf)
     folium.LayerControl().add_to(base_map)
     # render the map on screen
     st_data = st_folium.st_folium(base_map,
                                   zoom=15,
-                                  width=720, height=560, returned_objects=[])
+                                  width=950, height=560, returned_objects=[])
     # save the map if desired
-    if st.button("Save the Base Map"): 
+    if st.button("Save the Base Map"):
         # save the map to a file
         base_map.save('../output/LowerHallB_Base.html')
         st.success("Base Map Saved")
-    
+
     st.divider()
-    
+
     st.markdown(
         """
         <link href="https://rsms.me/inter/inter.css" rel='stylesheet'>
@@ -386,7 +406,7 @@ def main():
         """,
         unsafe_allow_html=True,
     )
-    
+
     st.markdown("""
         <link href="https://rsms.me/inter/inter.css" rel='stylesheet'>
         <p style=' 
@@ -394,33 +414,38 @@ def main():
         '>
         Use the dropdown to select the FMZs you want to display on the map.
         </p> """,
-        unsafe_allow_html=True,)
+                unsafe_allow_html=True,)
     ntwkm_gdf = load_network_layer_local(fmz_list=fmz_list)
     ntwkm_gdf.crs = "EPSG:27700"
     ntwkm_gdf = ntwkm_gdf.to_crs(epsg=4326)
-    
-    # Add markers to a Feature Group 
-    st.session_state['selected_fmzs'] = st.multiselect('Select FMZ Codes',fmz_list)
+
+    # Add markers to a Feature Group
+    st.session_state['selected_fmzs'] = st.multiselect(
+        'Select FMZ Codes', fmz_list)
     st.write(f"Selected FMZ Codes: {st.session_state['selected_fmzs']}")
-    
-    second_map =  gen_base_layer()
+
+    second_map = gen_base_layer()
     # ntwk_fg = render_ntwk_meter_layer(base_map=second_map, ntwkm_gdf=ntwkm_gdf, fmz_list=st.session_state['selected_fmzs'])
-    ntwk_fg_layers = render_ntwk_meter_layer(base_map=second_map, ntwkm_gdf=ntwkm_gdf, fmz_list=st.session_state['selected_fmzs'])
-    
+    ntwk_fg_layers = render_ntwk_meter_layer(
+        base_map=second_map, ntwkm_gdf=ntwkm_gdf, fmz_list=st.session_state['selected_fmzs'])
+
     for key, value in ntwk_fg_layers.items():
         second_map.add_child(value)
-    # second_map.add_child(ntwk_fg)
     center_loc = calculate_centroid(ntwkm_gdf)
     # render the map
     folium.LayerControl().add_to(second_map)
-    st_data_two = st_folium.st_folium(second_map, center=center_loc, zoom=12, returned_objects=[])
-    if st.button("Save the Network Map"): 
+    st_data_two = st_folium.st_folium(
+        second_map, center=center_loc, zoom=10, width=950, height=720, returned_objects=[])
+    if st.button("Save the Network Map"):
         # save the map to a file
         second_map.save('../output/NetworkMeter_Base.html')
         st.success("Network Meter Map Saved")
-    st.divider() 
+    st.divider()
+
 
 if __name__ == "__main__":
     app_setup_on_load()
+    # init_db_connection()
+    init_state()
     # asyncio.run(main())
     main()
