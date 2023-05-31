@@ -1,0 +1,6 @@
+.gis-streamlit-poc-venv
+streamlit/output
+*.code-workspace
+*.env
+/streamlit/data/ne_london_data.csv
+/streamlit/data/lower_hall_b.csv
