@@ -20,5 +20,6 @@ def init_state():
     st.session_state['zoom_level'] = 5      # start with zoom level 5
     st.session_state['center_loc'] = []     # start with an empty array 
     st.session_state['selected_fmzs'] = []  # input from multiselect 
-    st.session_state['ntwk_meter_df'] = None # requested network meter data
+    # st.session_state['ntwk_meter_df'] = None # requested network meter data
+    st.session_state['init_load'] = False
     

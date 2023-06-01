@@ -41,7 +41,6 @@ def hex_to_rgb(hex_value):
 def map_fmz_colors(feature, meter: bool, fmz: str | None = None):
 
     if meter:
-
         color_map = {
             "ZSEWRD": "cadetblue",
             "ZDARNH": "purple",
@@ -388,7 +387,7 @@ def main():
                                   zoom=15,
                                   width=950, height=560, returned_objects=[])
     # save the map if desired
-    if st.button("Save the Base Map"):
+    if st.button("Save Lower Hall B HTML"):
         # save the map to a file
         base_map.save('../output/LowerHallB_Base.html')
         st.success("Base Map Saved")
@@ -436,7 +435,7 @@ def main():
     folium.LayerControl().add_to(second_map)
     st_data_two = st_folium.st_folium(
         second_map, center=center_loc, zoom=10, width=950, height=720, returned_objects=[])
-    if st.button("Save the Network Map"):
+    if st.button("Save the Network Meters HTML"):
         # save the map to a file
         second_map.save('../output/NetworkMeter_Base.html')
         st.success("Network Meter Map Saved")
