@@ -6,4 +6,4 @@ streamlit/output
 /streamlit/data/lower_hall_b.csv
 /streamlit/data/ne_london_data.geojson
 .DS-Store
-
+*.env
