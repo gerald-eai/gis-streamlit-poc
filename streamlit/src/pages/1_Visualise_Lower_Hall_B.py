@@ -4,7 +4,7 @@ import sys
 import time as t
 from typing import Any
 
-import folium
+import folium 
 import geopandas as gpd
 import mapclassify
 import matplotlib.pyplot as plt
@@ -384,7 +384,7 @@ def main():
     folium.LayerControl().add_to(base_map)
     # render the map on screen
     st_data = st_folium.st_folium(base_map,
-                                  zoom=15,
+                                  zoom=10,
                                   width=950, height=560, returned_objects=[])
     # save the map if desired
     if st.button("Save Lower Hall B HTML"):
@@ -429,7 +429,7 @@ def main():
         base_map=second_map, ntwkm_gdf=ntwkm_gdf, fmz_list=st.session_state['selected_fmzs'])
 
     for key, value in ntwk_fg_layers.items():
-        second_map.add_child(value)
+        second_map.add_child(value) # 
     center_loc = calculate_centroid(ntwkm_gdf)
     # render the map
     folium.LayerControl().add_to(second_map)

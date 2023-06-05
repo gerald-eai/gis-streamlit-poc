@@ -4,6 +4,7 @@
 
 Goal of this module is to make requests using the dbutils module 
 and it converts data into the desired format
+This would act as our 'Services Layer'
 
 """
 import ast
@@ -29,7 +30,7 @@ sys.path.append(os.path.dirname(SCRIPT_DIR))
 
 load_dotenv()
 
-
+    
 def string_to_dict(input_str: str) -> list[str]:
     """_summary_
     This function is used to convert a string in the following format: "['{\"Hello\":1.0, \"World\":\"GPT\"}']" 
@@ -99,3 +100,5 @@ def load_gdf_from_csv(path: str) -> Any:
     """
     gdf = gpd.read_file(path)
     return gdf
+
+# this is where we create a base class for our app and then we can create a subclass for each service layer

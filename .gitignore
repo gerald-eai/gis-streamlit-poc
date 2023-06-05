@@ -7,3 +7,4 @@ streamlit/output
 /streamlit/data/ne_london_data.geojson
 .DS-Store
 *.env
+/docs

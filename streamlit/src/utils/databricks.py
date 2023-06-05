@@ -256,6 +256,14 @@ def clear_active_jobs(db_connection: DatabricksAPI, job_id: int | None = None):
     print("Clear all active jobs and job runs")
     return db_connection.jobs.delete_job(job_id=job_id)
 
+# :TODO Read from DBFS to view/read larger files 
+# db.dbfs.read(
+#     path,
+#     offset=None,
+#     length=None,
+#     headers=None,
+# )
+
 
 """ Main Functions to test out the module"""
 
@@ -337,6 +345,7 @@ def main_single_run():
     # json_obj = json.dumps(run_output, indent=4)
     with open(output_path, 'w') as f:
         json.dump(run_response, f, indent=4)
+
 
 
 def main():
