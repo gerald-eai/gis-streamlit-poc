@@ -11,11 +11,13 @@ load_dotenv()
 def app_setup_on_load(): 
     st.set_page_config(layout="wide", page_title="GIS Visualisation Tool", page_icon=":earth_africa:", initial_sidebar_state="expanded")
     # initialise the databricks connection with the environment variables 
-    
+
 def init_db_connection(): 
     db_connection =  dbutils.init_db_connection(host=os.environ.get("AZ_DB_HOST"), token=os.environ.get("AZ_DB_TOKEN"))
     st.session_state['databricks_connection'] = db_connection
-    
+    # st.write(type(db_connection))
+
+@st.cache_data()
 def init_state(): 
     st.session_state['zoom_level'] = 5      # start with zoom level 5
     st.session_state['center_loc'] = []     # start with an empty array 

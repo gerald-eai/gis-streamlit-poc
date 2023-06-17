@@ -379,13 +379,12 @@ def main():
     # # print(f"Center location: {center_loc}")
     st.session_state['center_loc'] = center_loc
     # add the network meter layer
-    base_map = render_base_layer(
-        base_map=base_map, lower_hall_gdf=lower_hall_gdf)
-    folium.LayerControl().add_to(base_map)
+    
+    # folium.LayerControl().add_to(base_map)
     # render the map on screen
-    st_data = st_folium.st_folium(base_map,
-                                  zoom=10,
-                                  width=950, height=560, returned_objects=[])
+    # st_data = st_folium.st_folium(base_map,
+    #                               zoom=10,
+    #                               width=950, height=560, returned_objects=[])
     # save the map if desired
     if st.button("Save Lower Hall B HTML"):
         # save the map to a file
@@ -423,21 +422,23 @@ def main():
         'Select FMZ Codes', fmz_list)
     st.write(f"Selected FMZ Codes: {st.session_state['selected_fmzs']}")
 
-    second_map = gen_base_layer()
+    # second_map = gen_base_layer()
+    base_map = render_base_layer(base_map=base_map, lower_hall_gdf=lower_hall_gdf)
     # ntwk_fg = render_ntwk_meter_layer(base_map=second_map, ntwkm_gdf=ntwkm_gdf, fmz_list=st.session_state['selected_fmzs'])
     ntwk_fg_layers = render_ntwk_meter_layer(
-        base_map=second_map, ntwkm_gdf=ntwkm_gdf, fmz_list=st.session_state['selected_fmzs'])
+        base_map=base_map, ntwkm_gdf=ntwkm_gdf, fmz_list=st.session_state['selected_fmzs'])
 
     for key, value in ntwk_fg_layers.items():
-        second_map.add_child(value) # 
-    center_loc = calculate_centroid(ntwkm_gdf)
+        base_map.add_child(value) # 
+        
+    # center_loc = calculate_centroid(ntwkm_gdf)
     # render the map
-    folium.LayerControl().add_to(second_map)
+    folium.LayerControl().add_to(base_map)
     st_data_two = st_folium.st_folium(
-        second_map, center=center_loc, zoom=10, width=950, height=720, returned_objects=[])
+        base_map, center=center_loc, zoom=10, width=950, height=720, returned_objects=[])
     if st.button("Save the Network Meters HTML"):
         # save the map to a file
-        second_map.save('../output/NetworkMeter_Base.html')
+        base_map.save('../output/NetworkMeter_Base.html')
         st.success("Network Meter Map Saved")
     st.divider()
 

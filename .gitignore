@@ -5,6 +5,10 @@ streamlit/output
 /streamlit/data/ne_london_data.csv
 /streamlit/data/lower_hall_b.csv
 /streamlit/data/ne_london_data.geojson
+/streamlit/data/
 .DS-Store
 *.env
 /docs
+*.pyc
+streamlit/src/utils/__pycache__
+/streamlit/src/utils/__pycache__

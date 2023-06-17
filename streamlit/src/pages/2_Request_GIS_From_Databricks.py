@@ -166,7 +166,6 @@ def gen_base_layer(center: list[float] | None = None):
         m = folium.Map()
     return m
 
-
 @st.cache_data()
 def request_ntwk_meter_data(selected_fmz: list[str] | None = None):
     """_summary_
@@ -179,11 +178,12 @@ def request_ntwk_meter_data(selected_fmz: list[str] | None = None):
     """
     nb_name = 'GISNTWM_Notebook_001'
     nb_path = os.environ.get('AZ_DB_NOTEBOOK_PATH') + nb_name
+    print(nb_path, "\n", nb_name)
     param_str = ','.join(selected_fmz)
     # # print(f"Param String: {param_str}")
-    ntwk_meter_df = request_gis_layer(work_path=nb_path, cluster=os.environ.get(
-        'AZ_DB_CLUSTER_ID'), job_params={"FMZCode": param_str}, f_name="ntwkm_run_output.json",
-        run_name="Get Network Meter Data")
+    ntwk_meter_df = request_gis_layer(work_path=nb_path, cluster=os.environ.get('AZ_DB_CLUSTER_ID'), 
+                                      job_params={"FMZCode": param_str}, f_name="ntwkm_run_output.json",
+                                      run_name="Get Network Meter Data")
     st.session_state['ntwk_meter_df'] = None
     st.session_state['ntwk_meter_df'] = ntwk_meter_df
     print(f"Network Meter Data: {type(st.session_state['ntwk_meter_df'])}")
